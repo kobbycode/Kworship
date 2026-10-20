@@ -4,6 +4,8 @@ A Windows worship presentation application in active development. Version 0.2.0 
 
 ## Try the Windows development build
 
+[Download Kworship 0.2.0 for Windows](https://github.com/kobbycode/Kworship/releases/download/v0.2.0/Kworship-0.2.0-win-x64.zip) from the [development release](https://github.com/kobbycode/Kworship/releases/tag/v0.2.0).
+
 Extract the complete `Kworship-0.2.0-win-x64.zip` folder and run **Kworship.exe** on Windows 11 x64. The .NET runtime is included. See the included `QUICKSTART.txt` for a walkthrough.
 
 Create a song, separate slides with blank lines, save, select it in the library and preview. Open congregation output, choose **Take**, then toggle **Black** off. Stage output shows current/upcoming live lyrics. Move the output windows to your extended-desktop screens and use **F11** for fullscreen; **Esc** exits fullscreen.
@@ -52,6 +54,6 @@ python3 scripts/package-windows.py artifacts/Kworship-0.2.0-win-x64
 
 ## Validation and design
 
-46 tests pass with zero skipped/failed, and the Release solution cross-build succeeds with zero warnings/errors. A Windows x64 ZIP was produced and checked for required runtime components and ZIP integrity. Windows execution and remote CI are unrun.
+46 tests pass with zero skipped/failed, and the Release solution cross-build succeeds with zero warnings/errors. A Windows x64 ZIP was produced and checked for required runtime components and ZIP integrity. Windows and Linux CI both passed all 46 tests, and the Windows-built ZIP was published after checksum and test-report verification. Interactive desktop execution and physical display checks remain unrun.
 
 See [workspace milestone and Windows checklist](docs/14-operator-workspace.md), [Phase 2 foundation history](docs/13-phase-2-foundation.md), [reference evidence](docs/01-reference-research.md), [architecture](docs/04-architecture-decision.md), and [roadmap](docs/10-implementation-roadmap.md).

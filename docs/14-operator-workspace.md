@@ -28,7 +28,7 @@ Current Linux-host validation: 46 automated cases passed, zero failed/skipped. F
 
 A self-contained Windows x64 build was produced with .NET runtime 10.0.13 included. Packaging checks required executable/runtime/SQLite/WPF files, the Windows executable header, ZIP CRCs and a SHA-256 receipt. Dependency notices are included. These checks establish package structure, not successful Windows execution.
 
-The Windows CI workflow now includes publish, packaging and artifact upload after build/tests. It has not been remotely executed in this session. No code has been pushed to GitHub and no installer/signing step was performed.
+The Windows CI workflow now includes publish, packaging and artifact upload after build/tests. The source is now pushed to GitHub. Build run 39381603997 passed on Windows and Linux, with 46 passing tests per platform. Release run 39382060566 verified both TRX counters and the Windows-built ZIP checksum before publishing the v0.2.0 development release. No installer/signing step was performed.
 
 ## Windows walkthrough — required, not yet executed
 
@@ -42,3 +42,6 @@ The Windows CI workflow now includes publish, packaging and artifact upload afte
 8. Save all edits, create a new database backup, and verify restore using the separately tested restore-to-new-database API before any manual activation.
 
 Physical display behavior, accessibility, Windows launch, long-running sessions, interruption during disk writes and runtime visual appearance remain unverified here. The next major capabilities are structured song metadata/arrangements, licensed scripture import, reliable multimedia and real display management. None is represented as complete in this version.
+
+## Published development package
+[Windows ZIP](https://github.com/kobbycode/Kworship/releases/download/v0.2.0/Kworship-0.2.0-win-x64.zip) · [release notes](https://github.com/kobbycode/Kworship/releases/tag/v0.2.0). The asset was built by Windows CI from source commit 5a0913b; later publisher/documentation commits do not change that application binary.
