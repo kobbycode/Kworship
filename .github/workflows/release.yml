@@ -1,0 +1,23 @@
+name: Publish development release
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        description: Successful master Build and test run to publish
+        required: true
+        default: '39381603997'
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify and publish Windows package
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: python3 scripts/publish-development-release.py
