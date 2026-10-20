@@ -37,6 +37,8 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     public bool IsSongDirty => SongTitle != (editingSong?.Title ?? "") || Lyrics != (editingSong?.Lyrics ?? "");
     public bool IsScheduleDirty => ScheduleTitle != currentSchedule.Title || !Entries.Select(e => e.SongId).SequenceEqual(currentSchedule.SongIds);
     public bool HasRecovery => recoveredSong is not null || recoveredSchedule is not null;
+    public Guid? EditingSongId => editingSong?.Id;
+    public bool CanSaveSong => !IsBusy && !HasRecovery && IsSongDirty && !string.IsNullOrWhiteSpace(SongTitle) && !string.IsNullOrWhiteSpace(Lyrics);
     public Guid CurrentScheduleId => currentSchedule.Id;
     public string SongSaveLabel => IsSongDirty ? "Unsaved changes" : editingSong is null ? "New song" : $"Saved · revision {editingSong.Revision}";
     public string ScheduleSaveLabel => IsScheduleDirty || currentSchedule.Revision == 0 ? "Unsaved service" : $"Saved · revision {currentSchedule.Revision}";

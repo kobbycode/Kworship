@@ -1,4 +1,4 @@
-KWORSHIP 0.2.0 — WINDOWS x64 DEVELOPMENT BUILD
+KWORSHIP 0.2.1 — WINDOWS x64 DEVELOPMENT BUILD
 
 1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
 2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
@@ -28,8 +28,8 @@ Back up library creates a database-only backup at a new destination; save any
 pending edits first. Existing backup files are never silently overwritten.
 
 VALIDATION LIMITS
-Cross-compiled and packaged on Linux. Domain/storage/workspace tests pass.
-This unsigned development build has not yet been launched on a Windows desktop.
+Domain/storage/workspace tests and a Windows WPF UI smoke check gate packaging.
+Windows CI exercises the WPF controls, bindings, output windows and dark theme.
 Physical display behavior and visual layout require the manual Windows checklist.
 This version presents text. It does not yet implement Bible data, video/audio,
 images, PowerPoint, automatic monitor assignment, timers or streaming.

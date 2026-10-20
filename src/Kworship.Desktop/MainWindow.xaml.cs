@@ -17,7 +17,10 @@ public partial class MainWindow : Window
 {
     private readonly WorkspaceViewModel workspace;
     private readonly LibraryStore store;
-    private readonly WorkspaceStateFile recoveryFile = new(Path.Combine(App.DataRoot, "workspace.json"));
+    private readonly WorkspaceStateFile recoveryFile;
+    private readonly string workspaceDirectory;
+    private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    internal Task WhenReady => ready.Task;
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
     private TextOutputWindow? congregation, stage;
     private Task<bool> pendingSave = Task.FromResult(true);
@@ -26,14 +29,17 @@ public partial class MainWindow : Window
     private int dragIndex = -1;
     private readonly Guid dragToken = Guid.NewGuid();
     private sealed record ServiceDrag(Guid Token, int Index);
-    public MainWindow(LibraryStore store)
+    public MainWindow(LibraryStore store, string? workspaceDirectory = null)
     {
         InitializeComponent(); this.store = store;
+        this.workspaceDirectory = workspaceDirectory ?? App.DataRoot;
+        recoveryFile = new(Path.Combine(this.workspaceDirectory, "workspace.json"));
         workspace = new(store, new OutputRouter(this)); DataContext = workspace;
         workspace.PropertyChanged += WorkspaceChanged;
         saveTimer.Tick += SaveDraftTick;
         SizeChanged += (_, _) => QueueRecovery();
         Loaded += Initialize;
+        UpdateActions();
         Closing += CloseWorkspace;
         Closed += (_, _) => { congregation?.Close(); stage?.Close(); };
     }
@@ -47,10 +53,10 @@ public partial class MainWindow : Window
             // Keep the exact invalid file available before writing any new recovery state.
             try
             {
-                var path = Path.Combine(App.DataRoot, "workspace.json");
+                var path = Path.Combine(workspaceDirectory, "workspace.json");
                 File.Copy(path, path + ".unreadable-" + DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
             }
-            catch (Exception copyError) { App.Log("recovery_preservation_failed",copyError); workspace.ReportError("Recovery file could not be read or preserved. Workspace recovery is disabled for this session."); await workspace.InitializeAsync(); return; }
+            catch (Exception copyError) { App.Log("recovery_preservation_failed",copyError); workspace.ReportError("Recovery file could not be read or preserved. Workspace recovery is disabled for this session."); await workspace.InitializeAsync(); ready.TrySetResult(); return; }
         }
         {
             var layout = recovery ?? new WorkspaceRecovery();
@@ -64,7 +70,7 @@ public partial class MainWindow : Window
             { LibraryColumn.Width = new(200); ScheduleColumn.Width = new(230); }
         }
         await workspace.InitializeAsync(recovery);
-        initialized = true;
+        initialized = true; UpdateActions(); ready.TrySetResult();
     }
     private static double FiniteClamp(double value, double min, double max, double fallback) => double.IsFinite(value) ? Math.Clamp(value,min,max) : fallback;
     private void WorkspaceChanged(object? sender, PropertyChangedEventArgs e)
@@ -72,6 +78,7 @@ public partial class MainWindow : Window
         // Library mutations run off the dispatcher; disable editable fields while a write is in flight.
         EditorPanel.IsEnabled = !workspace.IsBusy && !workspace.HasRecovery;
         ServicePanel.IsEnabled = !workspace.IsBusy && !workspace.HasRecovery;
+        UpdateActions();
         if (e.PropertyName is nameof(WorkspaceViewModel.SongTitle) or nameof(WorkspaceViewModel.Lyrics)
             or nameof(WorkspaceViewModel.IsSongDirty) or nameof(WorkspaceViewModel.IsScheduleDirty)
             or nameof(WorkspaceViewModel.HasRecovery) or nameof(WorkspaceViewModel.CurrentScheduleId)) QueueRecovery();
@@ -158,9 +165,38 @@ public partial class MainWindow : Window
         var insertion = row is null ? workspace.Entries.Count : ServiceItems.ItemContainerGenerator.IndexFromContainer(row) + (e.GetPosition(row).Y > row.ActualHeight/2 ? 1 : 0);
         workspace.ReorderEntry(data.Index,insertion); e.Handled = true;
     }
-    private void NewSong(object sender, RoutedEventArgs e) => workspace.NewSong();
+    private void UpdateActions()
+    {
+        if (workspace is null) return;
+        SaveSongButton.IsEnabled = workspace.CanSaveSong;
+        EditSongButton.IsEnabled = Songs.SelectedItem is Song && !workspace.IsBusy && !workspace.HasRecovery;
+        PreviewSelectedButton.IsEnabled = Songs.SelectedItem is Song;
+        AddSongButton.IsEnabled = Songs.SelectedItem is Song && !workspace.IsBusy && !workspace.HasRecovery;
+        TakeButton.IsEnabled = workspace.State.Preview is not null;
+        PreviewPreviousButton.IsEnabled = workspace.State.Preview is {Index: >0};
+        PreviewNextButton.IsEnabled = workspace.State.Preview is { } preview && preview.Index+1 < preview.Item.Slides.Length;
+        LivePreviousButton.IsEnabled = workspace.State.Live is {Index: >0};
+        LiveNextButton.IsEnabled = workspace.State.Live is { } live && live.Index+1 < live.Item.Slides.Length;
+        BlackButton.IsEnabled = ClearButton.IsEnabled = FreezeButton.IsEnabled = workspace.State.Live is not null;
+        OpenServiceButton.IsEnabled = SavedSchedules.SelectedItem is ServiceSchedule;
+        SaveServiceButton.IsEnabled = !string.IsNullOrWhiteSpace(workspace.ScheduleTitle) && !workspace.IsBusy;
+        PreviewServiceButton.IsEnabled = workspace.SelectedScheduleIndex >= 0;
+    }
+    private void SongSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActions();
+    private void SavedServiceSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActions();
+    private void ServiceSelectionChanged(object sender, SelectionChangedEventArgs e) => UpdateActions();
+    private void NewSong(object sender, RoutedEventArgs e) { if (workspace.NewSong()) SongTitleInput.Focus(); }
     private void EditSelected(object sender, RoutedEventArgs e) => workspace.EditSong(Songs.SelectedItem as Song);
-    private async void SaveSong(object sender, RoutedEventArgs e) => await workspace.SaveSongAsync();
+    private async void SaveSong(object sender, RoutedEventArgs e)
+    {
+        await workspace.SaveSongAsync();
+        if (!workspace.IsSongDirty && workspace.EditingSongId is { } id)
+        {
+            workspace.Query = "";
+            Songs.SelectedItem = workspace.Songs.FirstOrDefault(song => song.Id == id);
+            workspace.ReportError("Song saved and selected. Click Preview selected, then Take. Switch Black off to show it on the congregation output.");
+        }
+    }
     private void DiscardSong(object sender, RoutedEventArgs e) => workspace.DiscardSongEdits();
     private void PreviewLibrary(object sender, RoutedEventArgs e) => workspace.PreviewSong(Songs.SelectedItem as Song);
     private void PreviewLibraryDoubleClick(object sender, MouseButtonEventArgs e) => workspace.PreviewSong(Songs.SelectedItem as Song);
@@ -169,7 +205,11 @@ public partial class MainWindow : Window
     private void PreviewServiceDoubleClick(object sender, MouseButtonEventArgs e) => workspace.PreviewEntry();
     private void NewSchedule(object sender, RoutedEventArgs e) => workspace.NewSchedule();
     private async void OpenSchedule(object sender, RoutedEventArgs e) => await workspace.OpenScheduleAsync(SavedSchedules.SelectedItem as ServiceSchedule);
-    private async void SaveSchedule(object sender, RoutedEventArgs e) => await workspace.SaveScheduleAsync();
+    private async void SaveSchedule(object sender, RoutedEventArgs e)
+    {
+        await workspace.SaveScheduleAsync();
+        if (!workspace.IsScheduleDirty) SavedSchedules.SelectedItem = workspace.Schedules.FirstOrDefault(item=>item.Id==workspace.CurrentScheduleId);
+    }
     private async void DuplicateSchedule(object sender, RoutedEventArgs e) => await workspace.DuplicateScheduleAsync();
     private void DiscardSchedule(object sender, RoutedEventArgs e) => workspace.DiscardScheduleEdits();
     private void MoveUp(object sender, RoutedEventArgs e) => workspace.MoveEntry(-1);

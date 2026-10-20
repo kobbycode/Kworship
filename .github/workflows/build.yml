@@ -21,16 +21,38 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}
           path: tests/Kworship.Tests/TestResults/*.trx
+      - name: Exercise real Windows desktop controls
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          dotnet src/Kworship.Desktop/bin/Release/net10.0-windows/Kworship.dll --smoke-test artifacts/windows-ui-smoke
+          $resultCode = $LASTEXITCODE
+          if (Test-Path artifacts/windows-ui-smoke/result.json) {
+            $result = Get-Content artifacts/windows-ui-smoke/result.json -Raw | ConvertFrom-Json
+            if (-not $result.passed) { Write-Output "::error title=Windows UI smoke failure::$($result.error -replace '[\r\n]', ' ')" }
+            Get-Content artifacts/windows-ui-smoke/result.json
+          }
+          exit $resultCode
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: windows-ui-smoke
+          path: artifacts/windows-ui-smoke/*.png
+      - uses: actions/upload-artifact@v4
+        if: always() && runner.os == 'Windows'
+        with:
+          name: windows-ui-smoke-report
+          path: artifacts/windows-ui-smoke/result.json
       - name: Publish Windows development build
         if: runner.os == 'Windows'
-        run: dotnet publish src/Kworship.Desktop/Kworship.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output artifacts/Kworship-0.2.0-win-x64
+        run: dotnet publish src/Kworship.Desktop/Kworship.Desktop.csproj --configuration Release --runtime win-x64 --self-contained true --no-restore --output artifacts/Kworship-0.2.1-win-x64
       - name: Package Windows development build
         if: runner.os == 'Windows'
-        run: python scripts/package-windows.py artifacts/Kworship-0.2.0-win-x64
+        run: python scripts/package-windows.py artifacts/Kworship-0.2.1-win-x64
       - uses: actions/upload-artifact@v4
         if: runner.os == 'Windows'
         with:
-          name: Kworship-0.2.0-win-x64
+          name: Kworship-0.2.1-win-x64
           path: |
-            artifacts/Kworship-0.2.0-win-x64.zip
-            artifacts/Kworship-0.2.0-win-x64.zip.sha256
+            artifacts/Kworship-0.2.1-win-x64.zip
+            artifacts/Kworship-0.2.1-win-x64.zip.sha256

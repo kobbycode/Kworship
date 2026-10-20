@@ -21,7 +21,14 @@ public partial class App : System.Windows.Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        if (e.Args is ["--smoke-test", var directory])
+        {
+            ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            RunSmokeTest(directory); return;
+        }
         try { Log("startup"); MainWindow = new MainWindow(new LibraryStore(Path.Combine(DataRoot, "library.db"))); MainWindow.Show(); }
         catch (Exception ex) { Log("startup_failed", ex); MessageBox.Show("Kworship could not open its local library. Existing data has been preserved. Check the diagnostics file in LocalAppData/Kworship.", "Kworship"); Shutdown(1); }
     }
+    private async void RunSmokeTest(string directory)
+    { var result = await DesktopSmokeTest.RunAsync(this, Path.GetFullPath(directory)); Shutdown(result); }
 }

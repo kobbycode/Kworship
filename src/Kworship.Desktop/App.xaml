@@ -3,8 +3,10 @@
  <SolidColorBrush x:Key="CanvasBrush" Color="#10151D"/>
  <SolidColorBrush x:Key="PanelBrush" Color="#192230"/>
  <SolidColorBrush x:Key="MutedBrush" Color="#AFBDD0"/>
+ <SolidColorBrush x:Key="TextPrimaryBrush" Color="#F1F5FA"/>
+ <Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/></Style>
  <BooleanToVisibilityConverter x:Key="BoolVisibility"/>
- <Style TargetType="Window"><Setter Property="Background" Value="{StaticResource CanvasBrush}"/><Setter Property="Foreground" Value="#F1F5FA"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="14"/></Style>
+ <Style x:Key="AppWindow" TargetType="Window"><Setter Property="Background" Value="{StaticResource CanvasBrush}"/><Setter Property="Foreground" Value="#F1F5FA"/><Setter Property="FontFamily" Value="Segoe UI"/><Setter Property="FontSize" Value="14"/></Style>
  <Style TargetType="Button">
   <Setter Property="Background" Value="#29394C"/><Setter Property="Foreground" Value="#F1F5FA"/><Setter Property="BorderBrush" Value="#4A5D74"/>
   <Setter Property="Padding" Value="12,9"/><Setter Property="Margin" Value="3"/><Setter Property="Cursor" Value="Hand"/>
@@ -17,5 +19,18 @@
  <Style x:Key="Panel" TargetType="Border"><Setter Property="Background" Value="{StaticResource PanelBrush}"/><Setter Property="CornerRadius" Value="8"/><Setter Property="Padding" Value="14"/></Style>
  <Style x:Key="Caption" TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource MutedBrush}"/><Setter Property="FontSize" Value="12"/><Setter Property="Margin" Value="3,0,0,10"/></Style>
  <Style TargetType="GridSplitter"><Setter Property="Background" Value="#10151D"/><Setter Property="HorizontalAlignment" Value="Stretch"/><Setter Property="VerticalAlignment" Value="Stretch"/></Style>
+ <Style TargetType="ComboBox">
+  <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/><Setter Property="Background" Value="#101923"/><Setter Property="BorderBrush" Value="#4A5D74"/>
+  <Setter Property="MinHeight" Value="36"/>
+  <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBox">
+   <Grid><ToggleButton x:Name="DropDownToggle" Focusable="False" IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+    <ToggleButton.Template><ControlTemplate TargetType="ToggleButton"><Border Background="#101923" BorderBrush="#4A5D74" BorderThickness="1" CornerRadius="4"><TextBlock Text="▾" Foreground="#AFBDD0" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="10"/></Border></ControlTemplate></ToggleButton.Template>
+   </ToggleButton>
+   <ContentPresenter Content="{TemplateBinding SelectionBoxItem}" ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}" TextElement.Foreground="{TemplateBinding Foreground}" IsHitTestVisible="False" Margin="10,4,30,4" VerticalAlignment="Center"/>
+   <Popup x:Name="PART_Popup" IsOpen="{TemplateBinding IsDropDownOpen}" Placement="Bottom" AllowsTransparency="True" Focusable="False"><Border Background="#192230" BorderBrush="#63B3FF" BorderThickness="1" MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}" MaxHeight="280"><ScrollViewer CanContentScroll="True"><ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained"/></ScrollViewer></Border></Popup>
+   </Grid><ControlTemplate.Triggers><Trigger Property="IsEnabled" Value="False"><Setter Property="Opacity" Value="0.5"/></Trigger><Trigger Property="IsKeyboardFocusWithin" Value="True"><Setter Property="BorderBrush" Value="#FFD166"/></Trigger></ControlTemplate.Triggers>
+  </ControlTemplate></Setter.Value></Setter>
+ </Style>
+ <Style TargetType="ComboBoxItem"><Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}"/><Setter Property="Padding" Value="10,8"/><Setter Property="Template"><Setter.Value><ControlTemplate TargetType="ComboBoxItem"><Border x:Name="Choice" Background="Transparent" Padding="{TemplateBinding Padding}"><ContentPresenter/></Border><ControlTemplate.Triggers><Trigger Property="IsHighlighted" Value="True"><Setter TargetName="Choice" Property="Background" Value="#243D58"/></Trigger><Trigger Property="IsSelected" Value="True"><Setter TargetName="Choice" Property="Background" Value="#245D91"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter></Style>
 </Application.Resources>
 </Application>
