@@ -11,6 +11,19 @@ public sealed class WorkspaceTests : IDisposable
     private Song AddSong(string title, string lyrics = "[Verse 1]\nFirst line\n\n[Chorus]\nSecond line") => Store.SaveSong(new(Guid.NewGuid(),0,title,lyrics),0);
     private async Task<WorkspaceViewModel> Open(WorkspaceRecovery? recovery = null, IPresentationOutput? output = null)
     { var vm = new WorkspaceViewModel(Store, output ?? new RecordingOutput()); await vm.InitializeAsync(recovery); return vm; }
+    [Fact] public async Task ScriptureSaveKeepsDraftAndLiveAndSurvivesServiceReload()
+    {
+        var song=AddSong("Current song");var vm=await Open();vm.PreviewSong(song);vm.Dispatch(new TakePreview());var live=vm.State.Live;
+        vm.NewSong();vm.SongTitle="Unsaved hymn";vm.Lyrics="Original hymn draft";
+        var passage=new BibleTranslation("Test translation","Original test data",[new("Test book",1,1,"Original verse")]).Passage("Test book",1,1,1);
+        await vm.SaveScriptureAsync(passage);
+        Assert.Same(live,vm.State.Live);Assert.Equal("Unsaved hymn",vm.SongTitle);Assert.True(vm.IsSongDirty);
+        var saved=Store.GetSong(passage.Id)!;Assert.Equal(1,saved.Revision);
+        vm.AddSong(saved);await vm.SaveScheduleAsync();
+        var reopened=await Open();await reopened.OpenScheduleAsync(Store.GetSchedule(vm.CurrentScheduleId));
+        reopened.SelectedScheduleIndex=0;reopened.PreviewEntry();Assert.Contains("Original verse",reopened.PreviewText);
+        Assert.Contains("Original test data",reopened.State.Preview!.Item.Credit);
+    }
     [Fact] public async Task SearchFindsLyricsCaseInsensitivelyWithoutChangingLive()
     {
         var a=AddSong("Morning", "Café LIGHT"); AddSong("Evening", "Peace"); var vm=await Open();

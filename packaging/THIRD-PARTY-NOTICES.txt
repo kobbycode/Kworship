@@ -1,4 +1,4 @@
-Kworship 0.3.0 development build — bundled dependencies
+Kworship 0.4.0 development build — bundled dependencies
 
 .NET / Windows Desktop runtime 10.0.13
 Copyright (c) .NET Foundation and contributors; Microsoft Corporation.
@@ -19,3 +19,12 @@ Underlying SQLite is public domain: https://sqlite.org/copyright.html
 
 The SDK and test-only packages are not included in this application ZIP.
 This notice does not assign a license to the original Kworship application code.
+
+American Standard Version (1901) Bible text — public domain.
+Digital source: https://github.com/scrollmapper/bible_databases
+Source revision: d0ded4193d330a5412c14124a953bc112e67002f
+Translation-specific declaration: sources/en/ASV/README.md (Public Domain).
+The source repository's MIT notice is also included as scrollmapper-MIT.txt.
+The 16 empty source verse entries are omitted without supplying replacement
+text or changing numbering; source details are documented in the repository's
+docs/17-scripture-library.md and the packaged QUICKSTART.txt.

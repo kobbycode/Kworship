@@ -256,6 +256,20 @@ public partial class MainWindow : Window
             workspace.ReportError("Song saved and selected. Click Preview selected, then Take. Switch Black off to show it on the congregation output.");
         }
     }
+    private async void OpenScripture(object sender, RoutedEventArgs e)
+    {
+        if (workspace.IsBusy || workspace.HasRecovery) { workspace.ReportError("Wait for the current operation and recover or dismiss pending drafts first."); return; }
+        try
+        {
+            var dialog = new ScriptureWindow(Path.Combine(workspaceDirectory, "Bibles")) { Owner = this };
+            if (dialog.ShowDialog() == true && dialog.Result is { } passage)
+            {
+                await workspace.SaveScriptureAsync(passage);
+                Songs.SelectedItem = workspace.Songs.FirstOrDefault(s => s.Id == passage.Id);
+            }
+        }
+        catch (Exception error) { App.Log("scripture_open_failed",error); workspace.ReportError("Could not open the scripture library. Existing content and live output were preserved."); }
+    }
     private void EditStructure(object sender,RoutedEventArgs e)
     {
         try

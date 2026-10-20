@@ -1,4 +1,4 @@
-KWORSHIP 0.3.0 — WINDOWS x64 DEVELOPMENT BUILD
+KWORSHIP 0.4.0 — WINDOWS x64 DEVELOPMENT BUILD
 
 1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
 2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
@@ -33,9 +33,9 @@ VALIDATION LIMITS
 Domain/storage/workspace tests and a Windows WPF UI smoke check gate packaging.
 Windows CI exercises the WPF controls, bindings, output windows and dark theme.
 Physical display behavior and visual layout require the manual Windows checklist.
-This version presents text. It does not yet implement Bible data, video/audio,
+This version presents text. It does not yet implement video/audio,
 images, PowerPoint, timers or streaming.
-It is not validated for a live service. No songs or Bible corpus are bundled.
+It is not validated for a live service. ASV (1901), public domain, is included. No hymn collection is bundled.
 
 See THIRD-PARTY-NOTICES.txt and licenses/ for bundled component notices.
 
@@ -49,3 +49,17 @@ The first upgrade to schema v2 makes and verifies a pre-upgrade SQLite backup
 next to library.db, named library.db.before-v2-<id>.db. Keep this backup.
 Older app versions cannot open the upgraded library; restoring/downgrading
 requires the pre-upgrade backup. Do not delete your library to fix an error.
+
+SCRIPTURE
+Open Scripture library under the library controls. ASV (1901) is included
+for offline use: select book, chapter and verse range, review, and Save passage
+to library. It is selected automatically. Preview or Add to service, then Take
+and switch Black off. Each verse is one slide with its reference and credits.
+Some numbered verses are absent from this source; ranges crossing an absent
+verse are rejected. Select separate ranges around it.
+To add a translation, enter its attribution/licence/source, then Import Bible
+XML. Only authorised, uncompressed Zefania XML is supported. Keep the original
+XML. Imported translations are in %LOCALAPPDATA%\Kworship\Bibles and are NOT
+included in database-only backups. Saved passages ARE included in those backups.
+ASV digital source: github.com/scrollmapper/bible_databases, sources/en/ASV;
+source revision d0ded4193d330a5412c14124a953bc112e67002f, public domain.

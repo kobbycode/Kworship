@@ -138,6 +138,15 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
         await RefreshLibrary(); Changed(nameof(IsSongDirty));
         Status = "Song saved locally. Preview and live snapshots were preserved.";
     });
+    public Task SaveScriptureAsync(Song passage) => Work(async () =>
+    {
+        if (!AllowNewEdits()) return;
+        _ = SongPresentation.Create(passage with { Revision = 1 });
+        var saved = await Task.Run(() => store.SaveSong(passage, 0));
+        await RefreshLibrary();
+        Query = "";
+        Status = $"Saved {saved.Title}. Select it in the library, then preview or add it to the service. Live output is unchanged.";
+    });
     public void PreviewSong(Song? song)
     { if (song is null) { Status = "Choose a song from the library first."; return; } Try(() => Dispatch(new SelectPreview(SongPresentation.Create(song)))); }
     public void PreviewEntry()
