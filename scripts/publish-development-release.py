@@ -27,7 +27,7 @@ def main():
             and run['head_repository']['full_name'] == repository):
         raise RuntimeError('Only successful master build runs from this repository can be promoted')
     commit = run['head_sha']
-    release = json.loads(gh('release', 'view', 'v0.2.1', '--repo', repository,
+    release = json.loads(gh('release', 'view', 'v0.2.2', '--repo', repository,
                             '--json', 'isDraft,isPrerelease,targetCommitish'))
     if not release['isDraft'] or not release['isPrerelease'] or release['targetCommitish'] != commit:
         raise RuntimeError('Expected an unpublished development draft for the exact tested commit')
@@ -65,9 +65,9 @@ def main():
             raise RuntimeError('Missing screenshot of the tested Windows UI')
         package = root/'package'
         subprocess.run(['gh', 'run', 'download', run_id, '--repo', repository,
-                        '--name', 'Kworship-0.2.1-win-x64', '--dir', str(package)], check=True)
-        archive = package/'Kworship-0.2.1-win-x64.zip'
-        receipt = package/'Kworship-0.2.1-win-x64.zip.sha256'
+                        '--name', 'Kworship-0.2.2-win-x64', '--dir', str(package)], check=True)
+        archive = package/'Kworship-0.2.2-win-x64.zip'
+        receipt = package/'Kworship-0.2.2-win-x64.zip.sha256'
         expected = receipt.read_text().split()[0]
         with archive.open('rb') as stream:
             if hashlib.file_digest(stream, 'sha256').hexdigest() != expected:
@@ -75,16 +75,16 @@ def main():
         with zipfile.ZipFile(archive) as zipped:
             if zipped.testzip() is not None:
                 raise RuntimeError('ZIP integrity failure')
-            prefix = 'Kworship-0.2.1-win-x64/'
+            prefix = 'Kworship-0.2.2-win-x64/'
             for name in ('Kworship.exe', 'coreclr.dll', 'e_sqlite3.dll', 'QUICKSTART.txt'):
                 zipped.getinfo(prefix+name)
             with zipped.open(prefix+'Kworship.exe') as executable:
                 if executable.read(2) != b'MZ':
                     raise RuntimeError('Expected Windows executable')
         notes = root/'release-notes.md'
-        notes.write_text(f'''Kworship 0.2.1 is an early Windows x64 development build.
+        notes.write_text(f'''Kworship 0.2.2 is an early Windows x64 development build.
 
-Download **Kworship-0.2.1-win-x64.zip**, right-click it in Windows and choose **Extract All**, then open the extracted folder and run **Kworship.exe**. Keep all extracted files together. The .NET runtime is included.
+Download **Kworship-0.2.2-win-x64.zip**, right-click it in Windows and choose **Extract All**, then open the extracted folder and run **Kworship.exe**. Keep all extracted files together. The .NET runtime is included.
 
 Includes song editing/search, saved service schedules, independent preview/live controls, congregation/stage text windows, and offered draft recovery. Take a preview and toggle Black off to reveal content. F11 toggles output-window fullscreen.
 
@@ -97,12 +97,12 @@ This is an unsigned development release. Windows CI exercised the real WPF butto
 See QUICKSTART.txt and docs/14-operator-workspace.md for details. The SHA-256 receipt is included to check your downloaded ZIP.
 ''')
         # The release stays a draft until both verified assets have uploaded.
-        subprocess.run(['gh', 'release', 'upload', 'v0.2.1', str(archive), str(receipt),str(screenshot),
+        subprocess.run(['gh', 'release', 'upload', 'v0.2.2', str(archive), str(receipt),str(screenshot),
                         '--repo', repository, '--clobber'], check=True)
-        subprocess.run(['gh', 'release', 'edit', 'v0.2.1', '--repo', repository,
-                        '--title', 'Kworship 0.2.1 — Development preview', '--notes-file', str(notes),
+        subprocess.run(['gh', 'release', 'edit', 'v0.2.2', '--repo', repository,
+                        '--title', 'Kworship 0.2.2 — Development preview', '--notes-file', str(notes),
                         '--draft=false', '--prerelease'], check=True)
-        print(gh('release', 'view', 'v0.2.1', '--repo', repository, '--json', 'url', '--jq', '.url').strip())
+        print(gh('release', 'view', 'v0.2.2', '--repo', repository, '--json', 'url', '--jq', '.url').strip())
         print('Verified test counts:', results)
 
 

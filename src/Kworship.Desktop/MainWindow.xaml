@@ -17,7 +17,7 @@
   <GridSplitter Grid.Column="1" DragCompleted="LayoutChanged"/>
   <Border Grid.Column="2" Style="{StaticResource Panel}"><DockPanel x:Name="ServicePanel">
    <StackPanel DockPanel.Dock="Top"><TextBlock Style="{StaticResource Caption}" Text="SERVICE SCHEDULE"/>
-    <TextBlock Text="Saved services" Foreground="{StaticResource MutedBrush}" Margin="4,0,0,4"/><ComboBox x:Name="SavedSchedules" SelectionChanged="SavedServiceSelectionChanged" ItemsSource="{Binding Schedules}" DisplayMemberPath="Title" AutomationProperties.Name="Saved services" Margin="3" Padding="6" ToolTip="Choose a saved service, then Open"/>
+    <TextBlock Text="Saved services" Foreground="{StaticResource MutedBrush}" Margin="4,0,0,4"/><ComboBox x:Name="SavedSchedules" SelectionChanged="SavedServiceSelectionChanged" ItemsSource="{Binding Schedules}" AutomationProperties.Name="Saved services" Margin="3" Padding="6" ToolTip="Choose a saved service, then Open"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
     <WrapPanel><Button x:Name="OpenServiceButton" Content="Open" Click="OpenSchedule"/><Button Content="New" Click="NewSchedule"/><Button Content="Duplicate" Click="DuplicateSchedule"/></WrapPanel>
     <TextBlock Text="Service name" Foreground="{StaticResource MutedBrush}" Margin="4,8,0,3"/><TextBox x:Name="ServiceTitleBox" Text="{Binding ScheduleTitle, UpdateSourceTrigger=PropertyChanged}" AutomationProperties.Name="Service title"/>
     <TextBlock Text="{Binding ScheduleSaveLabel}" Foreground="{StaticResource MutedBrush}" FontSize="12" Margin="4,6"/>

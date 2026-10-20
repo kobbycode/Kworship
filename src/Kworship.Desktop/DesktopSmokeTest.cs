@@ -79,7 +79,9 @@ internal static class DesktopSmokeTest
             Check(store.ListSchedules()[0].SongIds.Count==1,"Service buttons add and persist the selected song");
             Check(!model.IsSongDirty && !model.IsScheduleDirty,"Song and service finish in saved states");
             var combo=Find<ComboBox>(window,"SavedSchedules");
-            combo.SelectedIndex=0; combo.IsDropDownOpen=true; await Pump();
+            combo.SelectedIndex=0; await Pump();
+            Check(Descendants<TextBlock>(combo).Any(t=>t.Text=="Sunday gathering"),"Saved-service selection renders its title rather than an internal record");
+            combo.IsDropDownOpen=true; await Pump();
             Check(BrushColor(combo.Background)==Color.FromRgb(16,25,35),"Saved-service picker uses the dark control palette");
             Check(combo.Template.FindName("PART_Popup",combo) is System.Windows.Controls.Primitives.Popup {IsOpen:true},"Saved-service picker opens its popup");
             combo.IsDropDownOpen=false; await Pump();
