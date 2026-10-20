@@ -65,13 +65,13 @@ public sealed class SongMilestoneTests:IDisposable
         await vm.SaveSongAsync();Assert.Same(live,vm.State.Live);Assert.Contains("Original author",live!.Item.Credit);
         vm.Query="Changed author";Assert.Single(vm.Songs);vm.DiscardSongEdits();Assert.False(vm.IsSongDirty);
     }
-    [Fact]public void V1UpgradePreservesContentAndCreatesVerifiedPreUpgradeBackup()
+    [Theory][InlineData("DB5CEED7A0284AE152FFC670066852BBDCEEDE799930FF58A240A6574669BB45")][InlineData("B577347CEE3E2046D74140ABE1828D1650D1B5E421FBAA53C18CC5EF4145076B")]public void V1UpgradePreservesContentAndCreatesVerifiedPreUpgradeBackup(string legacyReceipt)
     {
         Directory.CreateDirectory(directory);var songId=Guid.NewGuid();var serviceId=Guid.NewGuid();
         using(var db=new SqliteConnection($"Data Source={Database};Pooling=False"))
         {
             db.Open();using var command=db.CreateCommand();command.CommandText=LegacySchema;
-            command.ExecuteNonQuery();command.CommandText="CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL); INSERT INTO schema_migrations VALUES(1,'DB5CEED7A0284AE152FFC670066852BBDCEEDE799930FF58A240A6574669BB45'); INSERT INTO songs VALUES($song,3,'Legacy song','Legacy lyrics'); INSERT INTO schedules VALUES($service,2,'Legacy service'); INSERT INTO schedule_items VALUES($service,0,$song);";
+            command.ExecuteNonQuery();command.CommandText=$"CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,checksum TEXT NOT NULL); INSERT INTO schema_migrations VALUES(1,'{legacyReceipt}'); INSERT INTO songs VALUES($song,3,'Legacy song','Legacy lyrics'); INSERT INTO schedules VALUES($service,2,'Legacy service'); INSERT INTO schedule_items VALUES($service,0,$song);";
             command.Parameters.AddWithValue("$song",songId.ToString());command.Parameters.AddWithValue("$service",serviceId.ToString());command.ExecuteNonQuery();
         }
         var store=new LibraryStore(Database);Assert.NotNull(store.MigrationBackupPath);Assert.True(File.Exists(store.MigrationBackupPath));

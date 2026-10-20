@@ -21,7 +21,9 @@ public sealed class LibraryStore : ILibraryStore
         ALTER TABLE songs ADD COLUMN copyright TEXT NOT NULL DEFAULT '';
         ALTER TABLE songs ADD COLUMN arrangement TEXT NOT NULL DEFAULT '';
         """;
-    private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+    private static string Hash(string value) => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value.Replace("\r\n","\n"))));
+    // Released v1 builds hashed raw source line endings. Accept only those two known forms.
+    private static string LegacyWindowsChecksum => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(Schema.Replace("\r\n","\n").Replace("\n","\r\n"))));
     private static string Checksum => Hash(Schema);
     public string? MigrationBackupPath { get; }
     public LibraryStore(string databasePath)
@@ -61,7 +63,7 @@ public sealed class LibraryStore : ILibraryStore
         {
             var version=rows.GetInt32(0);
             var hash=version switch {1=>Checksum,2=>Hash(Migration2),_=>throw new InvalidDataException("Unsupported database schema version.")};
-            if(version!=expected || rows.GetString(1)!=hash)throw new InvalidDataException("Unsupported or modified database schema.");
+            if(version!=expected || (rows.GetString(1)!=hash && !(version==1&&rows.GetString(1)==LegacyWindowsChecksum)))throw new InvalidDataException("Unsupported or modified database schema.");
             expected++;
         }
         return expected-1;

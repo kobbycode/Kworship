@@ -147,7 +147,7 @@ public partial class MainWindow : Window
                 var role=isStage?"stage":"congregation";
                 var accepted=confirmDisplay?.Invoke(target,role)??(MessageBox.Show(this,$"Open {role} output on {target.Label}?"+(target.IsPrimary?" This is the operator/primary display.":"")+(!target.StableIdentity?" This device has no stable identity; recheck its assignment.":""),"Confirm output display",MessageBoxButton.OKCancel,MessageBoxImage.Question)==MessageBoxResult.OK);
                 if(!accepted)return;
-                workspace.Dispatch(new SetBlack(true));
+                if(!isStage)workspace.Dispatch(new SetBlack(true));
             }
             var output=new TextOutputWindow(isStage);
             output.Closed+=(_,_)=>{if(isStage){stage=null;stageDisplay=null;}else{congregation=null;congregationDisplay=null;}};

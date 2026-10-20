@@ -136,6 +136,15 @@ internal static class DesktopSmokeTest
             await Click(window,"BlackButton");
             Check(model.LiveText=="Together we begin again","Operator can explicitly reveal the retained live slide after reconnect");
             window.Activate();await Pump();
+            await Click(window,"DisplaySettingsButton");
+            var stageSettings=application.Windows.OfType<DisplaySettingsWindow>().Single();
+            Find<ComboBox>(stageSettings,"CongregationDisplay").SelectedIndex=0;
+            Find<ComboBox>(stageSettings,"StageDisplay").SelectedIndex=1;
+            await Click(stageSettings,"SaveDisplaysButton");await Click(window,"OpenOutputButton");await Click(window,"BlackButton");
+            var visibleBeforeStage=model.LiveText;
+            await Click(window,"OpenStageButton");
+            Check(!model.State.IsBlack&&model.LiveText==visibleBeforeStage,"Opening an assigned stage display does not black out congregation output");
+            window.Activate();await Pump();
             await Task.Delay(1000);
             Check(new WorkspaceStateFile(Path.Combine(data,"workspace.json")).Load()?.Displays==window.Assignments,"Display assignments persist in workspace recovery");
             Check(bindingErrors.Errors.Count==0,"No WPF data-binding errors during the operator workflow");
