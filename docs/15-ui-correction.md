@@ -29,3 +29,5 @@ The process exits nonzero on failure and writes result.json plus workspace.png o
 Local Linux cross-build and the existing 46 tests passed. Windows and Linux build run 39383467473 passed, including all 46 backend tests per platform and the new Windows UI smoke. Release promotion verifies that smoke report and its screenshot before publishing. A successful compilation alone is not considered UI validation. Physical pointer use, screen readers, mixed-DPI outputs and external display reliability still require manual testing.
 
 [Corrected Windows build](https://github.com/kobbycode/Kworship/releases/download/v0.2.2/Kworship-0.2.2-win-x64.zip) · [captured workspace](https://github.com/kobbycode/Kworship/releases/download/v0.2.2/workspace.png).
+
+Final 0.2.2 build run 39383916023 also passed on both platforms and passed the Windows UI smoke, including an additional assertion that the saved-service picker renders the service title. The final palette includes dark scrollbars.
