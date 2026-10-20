@@ -116,6 +116,7 @@ internal static class DesktopSmokeTest
             File.WriteAllText(bibleFixture,"<XMLBIBLE biblename='Original test translation'><BIBLEBOOK bname='Test book'><CHAPTER cnumber='1'><VERS vnumber='1'>First original scripture fixture.</VERS><VERS vnumber='2'>Second original scripture fixture.</VERS></CHAPTER></BIBLEBOOK></XMLBIBLE>");
             await Click(window,"ScriptureButton");
             var scripture = application.Windows.OfType<ScriptureWindow>().Single();
+            Check(Descendants<TextBlock>(Find<ComboBox>(scripture,"Translation")).Any(t=>t.Text=="American Standard Version (1901)"),"Translation picker renders the Bible title rather than an internal file record");
             Find<ComboBox>(scripture,"Book").SelectedItem="John";await Pump();
             Find<ComboBox>(scripture,"Chapter").SelectedItem=3;await Pump();
             Find<ComboBox>(scripture,"FirstVerse").SelectedItem=16;await Pump();

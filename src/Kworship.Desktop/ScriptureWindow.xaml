@@ -4,11 +4,13 @@
  <StackPanel DockPanel.Dock="Top">
   <TextBlock Text="SCRIPTURE LIBRARY" FontSize="24" Margin="4,0,0,12"/>
   <TextBlock Text="American Standard Version (1901) is included for offline use. You can also import authorised Zefania XML Bible files." TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" Margin="4,4"/>
+  <Expander Header="Import another translation…" Margin="4,10"><StackPanel>
   <TextBlock Text="Attribution / licence and source (required when importing)" Margin="4,10,4,3"/>
   <TextBox x:Name="Attribution" MaxLength="4000" MinHeight="48" TextWrapping="Wrap" AcceptsReturn="True" AutomationProperties.Name="Bible attribution and source"/>
   <Button x:Name="ImportBibleButton" Content="Import Bible XML…" HorizontalAlignment="Left" Click="ImportBible"/>
+  </StackPanel></Expander>
   <TextBlock Text="Translation" Margin="4,10,4,3"/>
-  <ComboBox x:Name="Translation" DisplayMemberPath="Title" SelectionChanged="TranslationChanged" AutomationProperties.Name="Bible translation"/>
+  <ComboBox x:Name="Translation" SelectionChanged="TranslationChanged" AutomationProperties.Name="Bible translation"><ComboBox.ItemTemplate><DataTemplate><TextBlock Text="{Binding Title}"/></DataTemplate></ComboBox.ItemTemplate></ComboBox>
   <TextBlock Text="Book" Margin="4,10,4,3"/><ComboBox x:Name="Book" SelectionChanged="BookChanged" AutomationProperties.Name="Bible book"/>
   <WrapPanel Margin="0,10"><StackPanel><TextBlock Text="Chapter" Margin="4"/><ComboBox x:Name="Chapter" Width="110" SelectionChanged="ChapterChanged" AutomationProperties.Name="Bible chapter"/></StackPanel><StackPanel><TextBlock Text="First verse" Margin="4"/><ComboBox x:Name="FirstVerse" Width="110" SelectionChanged="FirstChanged" AutomationProperties.Name="First verse"/></StackPanel><StackPanel><TextBlock Text="Last verse" Margin="4"/><ComboBox x:Name="LastVerse" Width="110" SelectionChanged="RangeChanged" AutomationProperties.Name="Last verse"/></StackPanel></WrapPanel>
  </StackPanel>

@@ -1,4 +1,4 @@
-# Scripture library (0.4.0)
+# Scripture library (0.4.1)
 
 ## Operate
 

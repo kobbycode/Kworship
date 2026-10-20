@@ -1,4 +1,4 @@
-Kworship 0.4.0 development build — bundled dependencies
+Kworship 0.4.1 development build — bundled dependencies
 
 .NET / Windows Desktop runtime 10.0.13
 Copyright (c) .NET Foundation and contributors; Microsoft Corporation.

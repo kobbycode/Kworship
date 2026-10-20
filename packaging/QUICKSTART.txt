@@ -1,4 +1,4 @@
-KWORSHIP 0.4.0 — WINDOWS x64 DEVELOPMENT BUILD
+KWORSHIP 0.4.1 — WINDOWS x64 DEVELOPMENT BUILD
 
 1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
 2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
