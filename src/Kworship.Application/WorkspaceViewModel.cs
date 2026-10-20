@@ -16,6 +16,7 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     private Song? editingSong;
     private ServiceSchedule currentSchedule = new(Guid.NewGuid(), 0, "Untitled service", []);
     private string query = "", songTitle = "", lyrics = "", scheduleTitle = "Untitled service", status = "Ready. Outputs start black.";
+    private string author="", copyright="", arrangement="";
     private Guid newSongId = Guid.NewGuid();
     private int selectedScheduleIndex = -1;
     private bool busy;
@@ -31,10 +32,20 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     public string Query { get => query; set { query = value; Filter(); Changed(); } }
     public string SongTitle { get => songTitle; set { songTitle = value; Changed(); Changed(nameof(IsSongDirty)); } }
     public string Lyrics { get => lyrics; set { lyrics = value; Changed(); Changed(nameof(IsSongDirty)); } }
+    public string Author { get=>author; set {author=value;Changed();Changed(nameof(IsSongDirty));} }
+    public string Copyright { get=>copyright; set {copyright=value;Changed();Changed(nameof(IsSongDirty));} }
+    public string Arrangement { get=>arrangement; set {arrangement=value;Changed();Changed(nameof(IsSongDirty));} }
+    public Song CurrentSongDraft => new(editingSong?.Id??newSongId,editingSong?.Revision??0,SongTitle,Lyrics,Author,Copyright,Arrangement);
+    public void ApplyStructuredDraft(Song song)
+    {
+        if(IsBusy || !AllowNewEdits())return;
+        SongTitle=song.Title; Lyrics=song.Lyrics; Author=song.Author; Copyright=song.Copyright; Arrangement=song.Arrangement;
+        Status="Structured changes applied to the editor. Save song to persist them; live output is unchanged.";
+    }
     public string ScheduleTitle { get => scheduleTitle; set { scheduleTitle = value; Changed(); Changed(nameof(IsScheduleDirty)); } }
     public string Status { get => status; private set { status = value; Changed(); } }
     public bool IsBusy { get => busy; private set { busy = value; Changed(); } }
-    public bool IsSongDirty => SongTitle != (editingSong?.Title ?? "") || Lyrics != (editingSong?.Lyrics ?? "");
+    public bool IsSongDirty => SongTitle != (editingSong?.Title ?? "") || Lyrics != (editingSong?.Lyrics ?? "") || Author!=(editingSong?.Author??"") || Copyright!=(editingSong?.Copyright??"") || Arrangement!=(editingSong?.Arrangement??"");
     public bool IsScheduleDirty => ScheduleTitle != currentSchedule.Title || !Entries.Select(e => e.SongId).SequenceEqual(currentSchedule.SongIds);
     public bool HasRecovery => recoveredSong is not null || recoveredSchedule is not null;
     public Guid? EditingSongId => editingSong?.Id;
@@ -70,7 +81,7 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     private void Filter()
     {
         Songs.Clear();
-        foreach (var song in library.Where(s => s.Title.Contains(Query, StringComparison.OrdinalIgnoreCase) || s.Lyrics.Contains(Query, StringComparison.OrdinalIgnoreCase))) Songs.Add(song);
+        foreach (var song in library.Where(s => s.Title.Contains(Query, StringComparison.OrdinalIgnoreCase) || s.Lyrics.Contains(Query, StringComparison.OrdinalIgnoreCase) || s.Author.Contains(Query,StringComparison.OrdinalIgnoreCase))) Songs.Add(song);
     }
     public async Task InitializeAsync(WorkspaceRecovery? recovery = null)
     {
@@ -104,26 +115,26 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     public bool NewSong()
     {
         if (IsBusy || !AllowSongReplacement()) return false;
-        editingSong = null; newSongId = Guid.NewGuid(); SongTitle = ""; Lyrics = ""; Changed(nameof(SongSaveLabel));
+        editingSong = null; newSongId = Guid.NewGuid(); SongTitle = ""; Lyrics = ""; Author=""; Copyright=""; Arrangement=""; Changed(nameof(SongSaveLabel));
         Status = "New song. Separate slides with a blank line; optional labels use [Verse 1]."; return true;
     }
     public bool EditSong(Song? song)
     {
         if (IsBusy || song is null || !AllowSongReplacement()) return false;
-        editingSong = song; SongTitle = song.Title; Lyrics = song.Lyrics; Status = "Editing song. Live content remains unchanged."; return true;
+        editingSong = song; SongTitle = song.Title; Lyrics = song.Lyrics; Author=song.Author; Copyright=song.Copyright; Arrangement=song.Arrangement; Status = "Editing song. Live content remains unchanged."; return true;
     }
     private bool AllowSongReplacement()
     { if (!AllowNewEdits()) return false; if (!IsSongDirty) return true; Status = "Save or discard the current song edits before opening another song."; return false; }
     public void DiscardSongEdits()
-    { if (IsBusy) return; SongTitle = editingSong?.Title ?? ""; Lyrics = editingSong?.Lyrics ?? ""; Status = "Song edits discarded."; }
+    { if (IsBusy) return; SongTitle = editingSong?.Title ?? ""; Lyrics = editingSong?.Lyrics ?? ""; Author=editingSong?.Author??""; Copyright=editingSong?.Copyright??""; Arrangement=editingSong?.Arrangement??""; Status = "Song edits discarded."; }
     public Task SaveSongAsync() => Work(async () =>
     {
         if (!AllowNewEdits()) return;
-        var candidate = new Song(editingSong?.Id ?? newSongId, editingSong?.Revision ?? 0, SongTitle.Trim(), Lyrics);
+        var candidate = new Song(editingSong?.Id ?? newSongId, editingSong?.Revision ?? 0, SongTitle.Trim(), Lyrics, Author.Trim(), Copyright.Trim(),Arrangement.Trim());
         _ = SongPresentation.Create(candidate with { Revision = Math.Max(1, candidate.Revision) });
         editingSong = await Task.Run(() => store.SaveSong(candidate, candidate.Revision));
         // Editing is disabled while this write is in flight.
-        SongTitle = editingSong.Title; Lyrics = editingSong.Lyrics;
+        SongTitle = editingSong.Title; Lyrics = editingSong.Lyrics; Author=editingSong.Author; Copyright=editingSong.Copyright; Arrangement=editingSong.Arrangement;
         await RefreshLibrary(); Changed(nameof(IsSongDirty));
         Status = "Song saved locally. Preview and live snapshots were preserved.";
     });
@@ -218,8 +229,8 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
         {
             // Keep the original base revision even if the database changed; a stale save must conflict.
             var baseline = library.FirstOrDefault(s => s.Id == song.Id);
-            editingSong = song.Revision == 0 ? null : new(song.Id, song.Revision, baseline?.Title ?? "", baseline?.Lyrics ?? "");
-            newSongId = song.Id; SongTitle = song.Title; Lyrics = song.Lyrics;
+            editingSong = song.Revision == 0 ? null : new(song.Id, song.Revision, baseline?.Title ?? "", baseline?.Lyrics ?? "",baseline?.Author??"",baseline?.Copyright??"",baseline?.Arrangement??"");
+            newSongId = song.Id; SongTitle = song.Title; Lyrics = song.Lyrics; Author=song.Author; Copyright=song.Copyright; Arrangement=song.Arrangement;
         }
         if (recoveredSchedule is { } draft)
         {
@@ -234,7 +245,7 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
     public void DismissRecovery()
     { recoveredSong = null; recoveredSchedule = null; Changed(nameof(HasRecovery)); Status = "Recovered drafts dismissed."; }
     public WorkspaceRecovery CaptureRecovery() => new(Song: recoveredSong ?? (IsSongDirty
-        ? new(editingSong?.Id ?? newSongId, editingSong?.Revision ?? 0, SongTitle, Lyrics) : null),
+        ? new(editingSong?.Id ?? newSongId, editingSong?.Revision ?? 0, SongTitle, Lyrics,Author,Copyright,Arrangement) : null),
         Schedule: recoveredSchedule ?? (IsScheduleDirty ? new(currentSchedule.Id, currentSchedule.Revision, ScheduleTitle, Entries.Select(e => e.SongId).ToArray()) : null),
         LastScheduleId: currentSchedule.Revision > 0 ? currentSchedule.Id : null);
     private bool AllowNewEdits()

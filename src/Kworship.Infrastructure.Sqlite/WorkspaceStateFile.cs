@@ -10,7 +10,7 @@ public sealed class WorkspaceStateFile(string path)
         if (!File.Exists(path)) return null;
         var state = JsonSerializer.Deserialize<WorkspaceRecovery>(File.ReadAllText(path));
         if (state is null || state.FormatVersion != 1) throw new InvalidDataException("Unsupported workspace recovery file.");
-        if (state.Song is { } song && (song.Id == Guid.Empty || song.Revision < 0 || song.Title is null || song.Lyrics is null))
+        if (state.Song is { } song && (song.Id == Guid.Empty || song.Revision < 0 || song.Title is null || song.Lyrics is null || song.Author is null || song.Copyright is null || song.Arrangement is null))
             throw new InvalidDataException("Invalid song recovery data.");
         if (state.Schedule is { } schedule && (schedule.Id == Guid.Empty || schedule.Revision < 0 || schedule.Title is null || schedule.SongIds is null))
             throw new InvalidDataException("Invalid schedule recovery data.");

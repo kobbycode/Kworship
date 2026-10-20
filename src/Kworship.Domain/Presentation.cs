@@ -8,8 +8,9 @@ public sealed record PresentationItem
     public Guid Id { get; }
     public int Revision { get; }
     public string Title { get; }
+    public string Credit { get; }
     public ImmutableArray<Slide> Slides { get; }
-    public PresentationItem(Guid id, int revision, string title, IEnumerable<Slide> slides)
+    public PresentationItem(Guid id, int revision, string title, IEnumerable<Slide> slides, string credit = "")
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         if (id == Guid.Empty || revision < 1) throw new ArgumentException("A stable ID and positive revision are required.");
@@ -17,7 +18,7 @@ public sealed record PresentationItem
         if (copy.IsEmpty || copy.Any(s => s.Id == Guid.Empty || s.Label is null || s.Text is null)
             || copy.Select(s => s.Id).Distinct().Count() != copy.Length)
             throw new ArgumentException("Provide at least one valid slide with unique IDs.");
-        Id = id; Revision = revision; Title = title; Slides = copy;
+        Id = id; Revision = revision; Title = title; Slides = copy; Credit = credit;
     }
 }
 public sealed record Cursor(PresentationItem Item, int Index)

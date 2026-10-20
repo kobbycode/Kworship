@@ -1,4 +1,4 @@
-KWORSHIP 0.2.2 — WINDOWS x64 DEVELOPMENT BUILD
+KWORSHIP 0.3.0 — WINDOWS x64 DEVELOPMENT BUILD
 
 1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
 2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
@@ -11,8 +11,10 @@ KWORSHIP 0.2.2 — WINDOWS x64 DEVELOPMENT BUILD
    and Save service. Saved services can be reopened or duplicated.
 7. Stage output shows the committed live slide and upcoming slide, even when
    the congregation is black or visually frozen. It never shows preview edits.
-8. Move an output window to the desired extended-desktop screen yourself.
-   F11 toggles fullscreen on that window; Esc exits fullscreen.
+8. Use Display setup to identify and assign congregation/stage screens.
+   Opening an assigned screen requires confirmation and starts black.
+   Windowed output is still available; F11 toggles its fullscreen mode.
+   Display changes suspend output. Reopen and confirm after reconnecting.
 9. Ctrl+F focuses library search. Ctrl+S saves the song when its editor has
    focus; otherwise it saves the current service. Text editing does not
    navigate live output.
@@ -32,7 +34,18 @@ Domain/storage/workspace tests and a Windows WPF UI smoke check gate packaging.
 Windows CI exercises the WPF controls, bindings, output windows and dark theme.
 Physical display behavior and visual layout require the manual Windows checklist.
 This version presents text. It does not yet implement Bible data, video/audio,
-images, PowerPoint, automatic monitor assignment, timers or streaming.
+images, PowerPoint, timers or streaming.
 It is not validated for a live service. No songs or Bible corpus are bundled.
 
 See THIRD-PARTY-NOTICES.txt and licenses/ for bundled component notices.
+
+STRUCTURED SONGS
+Use Sections & details to add verses, choruses and bridges; edit each section
+and add it repeatedly to the custom play order. Apply, then Save song.
+Author and copyright credits appear on congregation output.
+
+UPGRADING AN OLDER LIBRARY
+The first upgrade to schema v2 makes and verifies a pre-upgrade SQLite backup
+next to library.db, named library.db.before-v2-<id>.db. Keep this backup.
+Older app versions cannot open the upgraded library; restoring/downgrading
+requires the pre-upgrade backup. Do not delete your library to fix an error.

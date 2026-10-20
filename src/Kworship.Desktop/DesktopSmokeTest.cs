@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Windows;
 using System.Windows.Automation.Peers;
 using System.Windows.Automation.Provider;
@@ -30,7 +32,12 @@ internal static class DesktopSmokeTest
         {
             RenderOptions.ProcessRenderMode = System.Windows.Interop.RenderMode.SoftwareOnly;
             var store = new LibraryStore(Path.Combine(data,"library.db"));
-            var window = new MainWindow(store,data);
+            using var nativeCatalog=new NativeDisplayCatalog();
+            var nativeDisplays=nativeCatalog.GetDisplays();
+            if(nativeDisplays.Count==0||nativeDisplays.Select(d=>d.Id).Distinct().Count()!=nativeDisplays.Count||nativeDisplays.Any(d=>d.Width<=0||d.Height<=0))throw new InvalidOperationException("Windows display enumeration returned invalid identities or bounds");
+            var simulatedCatalog=new TestDisplayCatalog(nativeDisplays);
+            var confirmations=0;
+            var window = new MainWindow(store,data,simulatedCatalog,(_,_)=>{confirmations++;return true;});
             application.MainWindow = window;
             window.Show();
             await window.WhenReady.WaitAsync(TimeSpan.FromSeconds(20));
@@ -85,6 +92,52 @@ internal static class DesktopSmokeTest
             Check(BrushColor(combo.Background)==Color.FromRgb(16,25,35),"Saved-service picker uses the dark control palette");
             Check(combo.Template.FindName("PART_Popup",combo) is System.Windows.Controls.Primitives.Popup {IsOpen:true},"Saved-service picker opens its popup");
             combo.IsDropDownOpen=false; await Pump();
+            await Click(window,"EditSongButton");
+            await Click(window,"StructuredSongButton");
+            var structured=application.Windows.OfType<StructuredSongWindow>().Single();
+            Enter(Find<TextBox>(structured,"AuthorInput"),"Kworship fixture author");
+            Enter(Find<TextBox>(structured,"CopyrightInput"),"Original fixture © 2026");
+            var sectionList=Find<ListBox>(structured,"SectionsList");sectionList.SelectedIndex=1;await Pump();
+            Enter(Find<TextBox>(structured,"SectionLabelInput"),"Refrain");
+            await Click(structured,"AddOrderButton");sectionList.SelectedIndex=0;await Pump();await Click(structured,"AddOrderButton");sectionList.SelectedIndex=1;await Pump();await Click(structured,"AddOrderButton");
+            Capture(structured,Path.Combine(outputDirectory,"structured-song.png"));
+            var previousLive=model.State.Live;
+            await Click(structured,"ApplyStructuredButton");
+            Check(model.IsSongDirty&&model.Arrangement=="Refrain, Verse 1, Refrain","Structured dialog applies metadata and repeated custom section order");
+            Check(ReferenceEquals(previousLive,model.State.Live),"Structured song editing does not mutate the live snapshot");
+            await Click(window,"SaveSongButton");await Until(()=>!model.IsBusy&&!model.IsSongDirty);
+            var saved=store.ListSongs().Single();
+            Check(saved.Author=="Kworship fixture author"&&saved.Copyright=="Original fixture © 2026","Structured song metadata persists through the real save button");
+            await Click(window,"PreviewSelectedButton");
+            Check(model.PreviewSlides.Count==3&&model.PreviewSlides[0].Label=="Refrain"&&model.PreviewSlides[2].Label=="Refrain","Preview follows custom song order, including repeated sections");
+            await Click(window,"TakeButton");
+            Check(application.Windows.OfType<TextOutputWindow>().Any(output=>Descendants<TextBlock>(output).Any(t=>t.Text.Contains("Kworship fixture author"))),"Congregation output includes the saved song credit");
+            await Click(window,"DisplaySettingsButton");
+            var settings=application.Windows.OfType<DisplaySettingsWindow>().Single();
+            Find<ComboBox>(settings,"CongregationDisplay").SelectedIndex=1;
+            Find<ComboBox>(settings,"StageDisplay").SelectedIndex=0;
+            Capture(settings,Path.Combine(outputDirectory,"display-setup.png"));
+            await Click(settings,"SaveDisplaysButton");
+            Check(window.Assignments.CongregationId==nativeDisplays[0].Id&&window.Assignments.StageId is null,"Display setup saves native monitor identity and independent windowed stage mode");
+            Check(model.State.IsBlack&&!application.Windows.OfType<TextOutputWindow>().Any(),"Changing assignments suspends existing outputs safely");
+            await Click(window,"OpenOutputButton");
+            var assigned=application.Windows.OfType<TextOutputWindow>().Single();
+            var target=nativeDisplays[0];
+            if(!GetWindowRect(new WindowInteropHelper(assigned).Handle,out var bounds))throw new InvalidOperationException("Cannot read assigned output bounds");
+            Check(bounds.Left==target.Left&&bounds.Top==target.Top&&bounds.Right-bounds.Left==target.Width&&bounds.Bottom-bounds.Top==target.Height,"Assigned output occupies the native display pixel bounds");
+            Check(confirmations==1&&model.State.IsBlack,"Assigned output requires confirmation and opens black");
+            var liveBeforeDisconnect=model.State.Live;
+            simulatedCatalog.Set([]);await Until(()=>!application.Windows.OfType<TextOutputWindow>().Any());
+            Check(model.State.IsBlack&&ReferenceEquals(liveBeforeDisconnect,model.State.Live),"Simulated disconnect suspends output while retaining the committed live item");
+            simulatedCatalog.Set(nativeDisplays);await Pump();
+            Check(!application.Windows.OfType<TextOutputWindow>().Any(),"Simulated reconnection never resumes output automatically");
+            await Click(window,"OpenOutputButton");
+            Check(confirmations==2&&model.State.IsBlack,"Reopening after reconnection requires another confirmation and remains black");
+            await Click(window,"BlackButton");
+            Check(model.LiveText=="Together we begin again","Operator can explicitly reveal the retained live slide after reconnect");
+            window.Activate();await Pump();
+            await Task.Delay(1000);
+            Check(new WorkspaceStateFile(Path.Combine(data,"workspace.json")).Load()?.Displays==window.Assignments,"Display assignments persist in workspace recovery");
             Check(bindingErrors.Errors.Count==0,"No WPF data-binding errors during the operator workflow");
             Capture(window,Path.Combine(outputDirectory,"workspace.png"));
             File.WriteAllText(Path.Combine(outputDirectory,"result.json"),JsonSerializer.Serialize(new{passed=true,checks},new JsonSerializerOptions{WriteIndented=true}));
@@ -138,6 +191,15 @@ internal static class DesktopSmokeTest
         bitmap.Render(window);
         var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using var stream=File.Create(path);encoder.Save(stream);
+    }
+    [StructLayout(LayoutKind.Sequential)]private struct WindowRect{public int Left,Top,Right,Bottom;}
+    [DllImport("user32.dll")]private static extern bool GetWindowRect(IntPtr handle,out WindowRect bounds);
+    private sealed class TestDisplayCatalog(IReadOnlyList<DisplayInfo> displays):IDisplayCatalog
+    {
+        public event EventHandler? Changed;
+        public IReadOnlyList<DisplayInfo> GetDisplays()=>displays;
+        public void Set(IReadOnlyList<DisplayInfo> value){displays=value;Changed?.Invoke(this,EventArgs.Empty);}
+        public void Dispose(){}
     }
     private sealed class BindingErrorListener:TraceListener
     {

@@ -19,6 +19,11 @@ public partial class MainWindow : Window
     private readonly LibraryStore store;
     private readonly WorkspaceStateFile recoveryFile;
     private readonly string workspaceDirectory;
+    private readonly IDisplayCatalog displayCatalog;
+    private readonly Func<DisplayInfo,string,bool>? confirmDisplay;
+    private DisplayAssignments assignments=new();
+    private DisplayInfo? congregationDisplay,stageDisplay;
+    internal DisplayAssignments Assignments=>assignments;
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal Task WhenReady => ready.Task;
     private readonly DispatcherTimer saveTimer = new() { Interval = TimeSpan.FromMilliseconds(700) };
@@ -29,11 +34,13 @@ public partial class MainWindow : Window
     private int dragIndex = -1;
     private readonly Guid dragToken = Guid.NewGuid();
     private sealed record ServiceDrag(Guid Token, int Index);
-    public MainWindow(LibraryStore store, string? workspaceDirectory = null)
+    public MainWindow(LibraryStore store, string? workspaceDirectory = null, IDisplayCatalog? displays = null, Func<DisplayInfo,string,bool>? confirmDisplay = null)
     {
         InitializeComponent(); this.store = store;
         this.workspaceDirectory = workspaceDirectory ?? App.DataRoot;
         recoveryFile = new(Path.Combine(this.workspaceDirectory, "workspace.json"));
+        this.confirmDisplay=confirmDisplay;
+        displayCatalog=displays??new NativeDisplayCatalog();displayCatalog.Changed+=DisplayTopologyChanged;
         workspace = new(store, new OutputRouter(this)); DataContext = workspace;
         workspace.PropertyChanged += WorkspaceChanged;
         saveTimer.Tick += SaveDraftTick;
@@ -41,7 +48,7 @@ public partial class MainWindow : Window
         Loaded += Initialize;
         UpdateActions();
         Closing += CloseWorkspace;
-        Closed += (_, _) => { congregation?.Close(); stage?.Close(); };
+        Closed += (_, _) => { displayCatalog.Changed-=DisplayTopologyChanged;displayCatalog.Dispose();congregation?.Close(); stage?.Close(); };
     }
     private async void Initialize(object sender, RoutedEventArgs e)
     {
@@ -69,6 +76,7 @@ public partial class MainWindow : Window
             if (LibraryColumn.Width.Value + ScheduleColumn.Width.Value > Width - 608)
             { LibraryColumn.Width = new(200); ScheduleColumn.Width = new(230); }
         }
+        assignments=recovery?.Displays??new();
         await workspace.InitializeAsync(recovery);
         initialized = true; UpdateActions(); ready.TrySetResult();
     }
@@ -90,7 +98,7 @@ public partial class MainWindow : Window
         var bounds = WindowState == WindowState.Normal ? new Rect(Left,Top,ActualWidth,ActualHeight) : RestoreBounds;
         return workspace.CaptureRecovery() with { Width = bounds.Width, Height = bounds.Height,
             LibraryWidth = LibraryColumn.ActualWidth, ScheduleWidth = ScheduleColumn.ActualWidth,
-            PreviewHeightRatio = PreviewRow.ActualHeight / Math.Max(1, PreviewRow.ActualHeight+EditorRow.ActualHeight) };
+            PreviewHeightRatio = PreviewRow.ActualHeight / Math.Max(1, PreviewRow.ActualHeight+EditorRow.ActualHeight),Displays=assignments };
     }
     private async void SaveDraftTick(object? sender, EventArgs e)
     {
@@ -121,15 +129,66 @@ public partial class MainWindow : Window
         { closing = false; IsEnabled = true; workspace.ReportError("Could not preserve drafts. Save or discard them before closing."); return; }
         allowClose = true; Close();
     }
-    private void OpenOutput(object sender, RoutedEventArgs e)
+    private void OpenOutput(object sender,RoutedEventArgs e)=>OpenSurface(false);
+    private void OpenStage(object sender,RoutedEventArgs e)=>OpenSurface(true);
+    private void OpenSurface(bool isStage)
     {
-        if (congregation is null) { congregation = new(); congregation.Closed += (_,_) => congregation = null; congregation.Show(); }
-        congregation.Present(workspace.State); congregation.Activate();
+        try
+        {
+            var existing=isStage?stage:congregation;
+            if(existing is not null){existing.Activate();return;}
+            var id=isStage?assignments.StageId:assignments.CongregationId;
+            DisplayInfo? target=null;
+            if(id is not null)
+            {
+                var matches=displayCatalog.GetDisplays().Where(display=>display.Id==id).ToArray();
+                if(matches.Length!=1){workspace.ReportError("Assigned display is disconnected or ambiguous. Use Display setup, then reopen the output.");return;}
+                target=matches[0];
+                var role=isStage?"stage":"congregation";
+                var accepted=confirmDisplay?.Invoke(target,role)??(MessageBox.Show(this,$"Open {role} output on {target.Label}?"+(target.IsPrimary?" This is the operator/primary display.":"")+(!target.StableIdentity?" This device has no stable identity; recheck its assignment.":""),"Confirm output display",MessageBoxButton.OKCancel,MessageBoxImage.Question)==MessageBoxResult.OK);
+                if(!accepted)return;
+                workspace.Dispatch(new SetBlack(true));
+            }
+            var output=new TextOutputWindow(isStage);
+            output.Closed+=(_,_)=>{if(isStage){stage=null;stageDisplay=null;}else{congregation=null;congregationDisplay=null;}};
+            output.TopologyChanged+=(_,_)=>DisplayTopologyChanged(output,EventArgs.Empty);
+            if(isStage){stage=output;stageDisplay=target;}else{congregation=output;congregationDisplay=target;}
+            try{output.Show();if(target is not null)WindowPlacement.Place(output,target);output.Present(workspace.State);output.Activate();}
+            catch{output.Close();throw;}
+        }
+        catch(Exception error){App.Log("output_open_failed",error);workspace.ReportError("Could not open the assigned display. Live content was preserved; check Display setup.");}
     }
-    private void OpenStage(object sender, RoutedEventArgs e)
+    private void ConfigureDisplays(object sender,RoutedEventArgs e)
     {
-        if (stage is null) { stage = new(true); stage.Closed += (_,_) => stage = null; stage.Show(); }
-        stage.Present(workspace.State); stage.Activate();
+        try
+        {
+            var dialog=new DisplaySettingsWindow(displayCatalog.GetDisplays(),assignments){Owner=this};
+            if(dialog.ShowDialog()==true&&dialog.Result is { } value)
+            {
+                workspace.Dispatch(new SetBlack(true));CloseOutputs();assignments=value;QueueRecovery();
+                workspace.ReportError("Display assignments saved. Reopen outputs and confirm the target screens; congregation starts black.");
+            }
+        }
+        catch(Exception error){App.Log("display_setup_failed",error);workspace.ReportError("Could not read Windows displays. Existing assignments were preserved.");}
+    }
+    private void CloseOutputs(){congregation?.Close();stage?.Close();}
+    private void DisplayTopologyChanged(object? sender,EventArgs e)
+    {
+        Dispatcher.BeginInvoke(()=>
+        {
+            try
+            {
+                if(allowClose || (congregation is null&&stage is null))return;
+                var displays=displayCatalog.GetDisplays();
+                if((congregation is not null&&OutputAssignmentRules.MustSuspend(congregationDisplay,displays))
+                    ||(stage is not null&&OutputAssignmentRules.MustSuspend(stageDisplay,displays)) || sender is TextOutputWindow)
+                {
+                    workspace.Dispatch(new SetBlack(true));CloseOutputs();
+                    workspace.ReportError("Display configuration changed. Outputs were suspended; assignments and live item are retained. Reopen and confirm to resume.");
+                }
+            }
+            catch(Exception error){App.Log("display_refresh_failed",error);workspace.Dispatch(new SetBlack(true));CloseOutputs();workspace.ReportError("Display status is unknown. Outputs suspended; reopen after checking Display setup.");}
+        });
     }
     private sealed class OutputRouter(MainWindow owner) : IPresentationOutput
     { public void Present(PresentationState state) { owner.congregation?.Present(state); owner.stage?.Present(state); } }
@@ -196,6 +255,15 @@ public partial class MainWindow : Window
             Songs.SelectedItem = workspace.Songs.FirstOrDefault(song => song.Id == id);
             workspace.ReportError("Song saved and selected. Click Preview selected, then Take. Switch Black off to show it on the congregation output.");
         }
+    }
+    private void EditStructure(object sender,RoutedEventArgs e)
+    {
+        try
+        {
+            var dialog=new StructuredSongWindow(workspace.CurrentSongDraft){Owner=this};
+            if(dialog.ShowDialog()==true && dialog.Result is { } song)workspace.ApplyStructuredDraft(song);
+        }
+        catch(ArgumentException error){workspace.ReportError(error.Message);}
     }
     private void DiscardSong(object sender, RoutedEventArgs e) => workspace.DiscardSongEdits();
     private void PreviewLibrary(object sender, RoutedEventArgs e) => workspace.PreviewSong(Songs.SelectedItem as Song);

@@ -93,7 +93,7 @@ public sealed class StorageTests : IDisposable
     {
         var store=Store(); store.SaveSong(Song(),0); var backup=Path.Combine(directory,"backup.db"); store.Backup(backup);
         using(var db=new SqliteConnection($"Data Source={backup};Pooling=False"))
-        { db.Open(); using var command=db.CreateCommand(); command.CommandText="UPDATE schema_migrations SET version=99"; command.ExecuteNonQuery(); }
+        { db.Open(); using var command=db.CreateCommand(); command.CommandText="UPDATE schema_migrations SET version=99 WHERE version=2"; command.ExecuteNonQuery(); }
         var destination=Path.Combine(directory,"destination.db");
         Assert.Throws<InvalidDataException>(()=>LibraryStore.RestoreToNewDatabase(backup,destination));
         Assert.False(File.Exists(destination));

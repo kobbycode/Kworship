@@ -2,7 +2,8 @@ using Kworship.Domain;
 namespace Kworship.Application;
 
 public sealed class RevisionConflictException(string message) : Exception(message);
-public sealed record Song(Guid Id, int Revision, string Title, string Lyrics);
+public sealed record Song(Guid Id, int Revision, string Title, string Lyrics,
+    string Author = "", string Copyright = "", string Arrangement = "");
 public sealed record ServiceSchedule(Guid Id, int Revision, string Title, IReadOnlyList<Guid> SongIds);
 public interface ILibraryStore
 {
@@ -20,18 +21,16 @@ public static class SongPresentation
 {
     public static PresentationItem Create(Song song)
     {
-        var blocks = System.Text.RegularExpressions.Regex.Split(song.Lyrics.Replace("\r\n", "\n"), @"\n[ \t]*\n+")
-            .Select(block => block.Trim()).Where(block => block.Length > 0).ToArray();
-        var slides = blocks.Select((block, index) =>
+        var sections = SongStructure.Parse(song.Lyrics);
+        var arranged = SongStructure.Arrange(sections, song.Arrangement);
+        var slides = arranged.Select((section, index) =>
         {
-            var lines = block.Split('\n');
-            var labeled = lines[0].StartsWith('[') && lines[0].EndsWith(']') && lines.Length > 1;
-            var label = labeled ? lines[0][1..^1] : $"Slide {index + 1}";
-            var text = labeled ? string.Join('\n', lines.Skip(1)).Trim() : block;
+            var label = section.Label;
+            var text = section.Text;
             var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes($"{song.Id}:{song.Revision}:{index}"));
             return new Slide(new Guid(hash.AsSpan(0, 16)), label, text);
         });
-        return new(song.Id, song.Revision, song.Title, slides);
+        return new(song.Id, song.Revision, song.Title, slides, string.Join(" · ",new[]{song.Author,song.Copyright}.Where(value=>!string.IsNullOrWhiteSpace(value))));
     }
 }
 public sealed class PresentationSession(IPresentationOutput output)
