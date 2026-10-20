@@ -1,0 +1,38 @@
+KWORSHIP 0.2.0 — WINDOWS x64 DEVELOPMENT BUILD
+
+1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
+2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
+3. Choose New song. Enter an original title and lyrics, separating slides
+   with blank lines. Optional section labels use [Verse 1] or [Chorus]. Save.
+4. Select that song in the library and choose Preview selected.
+5. Open Congregation output. Take the preview, then toggle Black off.
+   Preview navigation will not change live output. Use live arrows to advance.
+6. Add songs to the service. Rename it, reorder with drag/drop or arrows,
+   and Save service. Saved services can be reopened or duplicated.
+7. Stage output shows the committed live slide and upcoming slide, even when
+   the congregation is black or visually frozen. It never shows preview edits.
+8. Move an output window to the desired extended-desktop screen yourself.
+   F11 toggles fullscreen on that window; Esc exits fullscreen.
+9. Ctrl+F focuses library search. Ctrl+S saves the song when its editor has
+   focus; otherwise it saves the current service. Text editing does not
+   navigate live output.
+
+DATA AND RECOVERY
+Canonical songs/services: %LOCALAPPDATA%\Kworship\library.db
+Drafts and layout:       %LOCALAPPDATA%\Kworship\workspace.json
+Diagnostics:             %LOCALAPPDATA%\Kworship\diagnostics.jsonl
+Draft recovery is debounced by 700ms and offered for review after restart.
+Recovery never activates live output. Choose Recover or Dismiss before editing.
+Save/discard current edits before replacing the song or service.
+Back up library creates a database-only backup at a new destination; save any
+pending edits first. Existing backup files are never silently overwritten.
+
+VALIDATION LIMITS
+Cross-compiled and packaged on Linux. Domain/storage/workspace tests pass.
+This unsigned development build has not yet been launched on a Windows desktop.
+Physical display behavior and visual layout require the manual Windows checklist.
+This version presents text. It does not yet implement Bible data, video/audio,
+images, PowerPoint, automatic monitor assignment, timers or streaming.
+It is not validated for a live service. No songs or Bible corpus are bundled.
+
+See THIRD-PARTY-NOTICES.txt and licenses/ for bundled component notices.

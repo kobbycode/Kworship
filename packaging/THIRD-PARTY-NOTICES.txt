@@ -1,0 +1,21 @@
+Kworship 0.2.0 development build — bundled dependencies
+
+.NET / Windows Desktop runtime 10.0.13
+Copyright (c) .NET Foundation and contributors; Microsoft Corporation.
+License and third-party notices copied from the exact restored runtime packs.
+
+Microsoft.Data.Sqlite / Microsoft.Data.Sqlite.Core 10.0.13
+Copyright (c) .NET Foundation and Contributors.
+MIT license, included under licenses/.
+Source: https://github.com/dotnet/efcore/tree/v10.0.13
+
+SQLitePCLRaw.core / provider.e_sqlite3 / bundle_e_sqlite3 / lib.e_sqlite3 2.1.13
+Copyright 2014-2024 SourceGear, LLC (package metadata).
+Apache License 2.0, included under licenses/.
+Source: https://github.com/ericsink/SQLitePCL.raw
+The included Apache license text was retrieved from the upstream master branch;
+NuGet package metadata declares Apache-2.0 for the restored packages.
+Underlying SQLite is public domain: https://sqlite.org/copyright.html
+
+The SDK and test-only packages are not included in this application ZIP.
+This notice does not assign a license to the original Kworship application code.

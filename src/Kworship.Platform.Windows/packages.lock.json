@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows7.0": {
+      "kworship.application": {
+        "type": "Project",
+        "dependencies": {
+          "Kworship.Domain": "[1.0.0, )"
+        }
+      },
+      "kworship.domain": {
+        "type": "Project"
+      }
+    }
+  }
+}
