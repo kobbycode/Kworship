@@ -16,6 +16,9 @@ jobs:
       - run: dotnet restore Kworship.sln --locked-mode
       - run: dotnet build Kworship.sln --configuration Release --no-restore
       - run: dotnet test tests/Kworship.Tests/Kworship.Tests.csproj --configuration Release --no-build --no-restore --logger "trx;LogFileName=foundation.trx"
+      - name: Report test failures
+        if: always()
+        run: python scripts/report-tests.py tests/Kworship.Tests/TestResults
       - uses: actions/upload-artifact@v4
         if: always()
         with:

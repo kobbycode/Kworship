@@ -1,0 +1,21 @@
+name: Inspect test report
+on:
+  workflow_dispatch:
+    inputs:
+      build_run_id:
+        required: true
+        description: Build run containing Windows TRX results
+permissions:
+  contents: read
+  actions: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download existing test report
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BUILD_RUN_ID: ${{ inputs.build_run_id }}
+        run: gh run download "$BUILD_RUN_ID" --repo "$GITHUB_REPOSITORY" --name test-results-windows-latest --dir reports
+      - run: python3 scripts/report-tests.py reports
