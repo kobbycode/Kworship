@@ -32,8 +32,9 @@ for package,framework in [('microsoft.netcore.app.runtime.win-x64','Microsoft.NE
             found = True
     if not found:
         raise RuntimeError(f'Cannot package without runtime license: {package_root}')
-for name in ('QUICKSTART.txt','THIRD-PARTY-NOTICES.txt'):
+for name in ('QUICKSTART.txt','THIRD-PARTY-NOTICES.txt','hymn-example.json'):
     shutil.copyfile(repository/'packaging'/name,publish/name)
+shutil.copyfile(repository/'docs'/'18-hymn-import.md',publish/'HYMN-IMPORT.md')
 archive = Path(str(publish)+'.zip')
 with zipfile.ZipFile(archive,'w',zipfile.ZIP_DEFLATED,compresslevel=6) as output:
     for source in sorted(publish.rglob('*')):

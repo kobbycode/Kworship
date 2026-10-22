@@ -171,6 +171,32 @@ internal static class DesktopSmokeTest
             window.Activate();await Pump();
             await Task.Delay(1000);
             Check(new WorkspaceStateFile(Path.Combine(data,"workspace.json")).Load()?.Displays==window.Assignments,"Display assignments persist in workspace recovery");
+            var hymnFile=Path.Combine(data,"hymns.json");
+            var hymnRows=new[]{new HymnImportRow("Imported original hymn A","[Verse 1]\nOriginal hymn verse\n\n[Chorus]\nOriginal hymn chorus","Fixture author","Original test content","Verse 1, Chorus, Verse 1","Example hymnal","8"),
+                new HymnImportRow("Imported original hymn B","Second original hymn"),
+                new HymnImportRow("Imported original hymn B","Second original hymn")};
+            File.WriteAllText(hymnFile,JsonSerializer.Serialize(hymnRows));
+            var liveBeforeImport=model.State.Live;
+            await Click(window,"HymnImportButton");await Until(()=>application.Windows.OfType<HymnImportWindow>().Any());
+            var hymnDialog=application.Windows.OfType<HymnImportWindow>().Single();
+            var invalidFile=Path.Combine(data,"invalid-hymns.json");File.WriteAllText(invalidFile,"[{\"title\":\"Missing lyrics\"}]");
+            await hymnDialog.LoadSource(invalidFile);
+            Check(!Find<Button>(hymnDialog,"ConfirmHymnImportButton").IsEnabled&&store.ListSongs().Count==2,"Invalid hymn file cannot import or mutate the library");
+            await hymnDialog.LoadSource(hymnFile);await Pump();
+            Check(Find<ListBox>(hymnDialog,"HymnCandidates").Items.Count==3,"Hymn collection dialog lists all input records for review");
+            Check(Find<TextBlock>(hymnDialog,"HymnPreview").Text.Contains("Example hymnal #8"),"Hymnal number and lyrics render in the import preview");
+            Check(Find<TextBlock>(hymnDialog,"ImportSummary").Text.Contains("2 new")&&Find<TextBlock>(hymnDialog,"ImportSummary").Text.Contains("1 exact duplicates"),"Import preview reports new hymns and within-file duplicates");
+            Capture(hymnDialog,Path.Combine(outputDirectory,"hymn-import.png"));
+            await Click(hymnDialog,"ConfirmHymnImportButton");await Until(()=>!model.IsBusy&&store.ListSongs().Count==4);
+            Check(ReferenceEquals(liveBeforeImport,model.State.Live),"Bulk hymn import preserves the current live snapshot");
+            Find<ListBox>(window,"Songs").SelectedItem=model.Songs.Single(song=>song.Title.Contains("Imported original hymn A"));await Pump();
+            await Click(window,"PreviewSelectedButton");
+            Check(model.PreviewSlides.Count==3&&model.PreviewText=="Original hymn verse","Imported hymn previews its repeated custom play order");
+            await Click(window,"AddSongButton");await Click(window,"SaveServiceButton");await Until(()=>!model.IsBusy&&!model.IsScheduleDirty);
+            Check(store.ListSchedules().Single().SongIds.Count==3,"Imported hymn saves alongside scripture and existing song in the service");
+            await Click(window,"HymnImportButton");await Until(()=>application.Windows.OfType<HymnImportWindow>().Any());
+            var duplicateDialog=application.Windows.OfType<HymnImportWindow>().Single();await duplicateDialog.LoadSource(hymnFile);
+            Check(!Find<Button>(duplicateDialog,"ConfirmHymnImportButton").IsEnabled,"Reimporting the same collection disables an all-duplicate import");duplicateDialog.Close();await Pump();
             Check(bindingErrors.Errors.Count==0,"No WPF data-binding errors during the operator workflow");
             Capture(window,Path.Combine(outputDirectory,"workspace.png"));
             File.WriteAllText(Path.Combine(outputDirectory,"result.json"),JsonSerializer.Serialize(new{passed=true,checks},new JsonSerializerOptions{WriteIndented=true}));

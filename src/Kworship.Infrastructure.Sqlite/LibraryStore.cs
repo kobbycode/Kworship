@@ -102,6 +102,33 @@ public sealed class LibraryStore : ILibraryStore
             throw new RevisionConflictException("Song changed since it was loaded. Reload before saving.");
         tx.Commit(); return song with { Revision = expectedRevision + 1 };
     }
+    public HymnImportResult ImportSongs(IReadOnlyList<Song> songs)
+    {
+        var candidates=songs.ToArray();
+        if(candidates.Length is 0 or > HymnImport.MaximumSongs)throw new ArgumentException("Import between 1 and 2,000 hymns.");
+        foreach(var song in candidates)
+        {
+            Validate(song.Id,song.Title,0);
+            if(song.Revision!=0)throw new ArgumentException("Import only new songs; existing revisions cannot be replaced.");
+            ArgumentException.ThrowIfNullOrWhiteSpace(song.Lyrics);
+            _=SongPresentation.Create(song with{Revision=1});
+        }
+        using var db=Open();using var tx=db.BeginTransaction();
+        var known=new HashSet<string>();
+        using(var query=Command(db,tx,"SELECT id,revision,title,lyrics,author,copyright,arrangement FROM songs"))
+        using(var rows=query.ExecuteReader())
+            while(rows.Read())known.Add(HymnImport.Fingerprint(new(Guid.Parse(rows.GetString(0)),rows.GetInt32(1),rows.GetString(2),rows.GetString(3),rows.GetString(4),rows.GetString(5),rows.GetString(6))));
+        int added=0,skipped=0;
+        foreach(var song in candidates)
+        {
+            if(!known.Add(HymnImport.Fingerprint(song))){skipped++;continue;}
+            // A colliding ID is an error, never an update. Transaction rollback includes prior inserts.
+            Execute(db,tx,"INSERT INTO songs(id,revision,title,lyrics,author,copyright,arrangement) VALUES($id,1,$title,$lyrics,$author,$copyright,$arrangement)",
+                ("$id",song.Id.ToString()),("$title",song.Title),("$lyrics",song.Lyrics),("$author",song.Author),("$copyright",song.Copyright),("$arrangement",song.Arrangement));
+            added++;
+        }
+        tx.Commit();return new(added,skipped);
+    }
     public Song? GetSong(Guid id)
     {
         using var db = Open();

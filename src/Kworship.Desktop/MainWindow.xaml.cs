@@ -256,6 +256,16 @@ public partial class MainWindow : Window
             workspace.ReportError("Song saved and selected. Click Preview selected, then Take. Switch Black off to show it on the congregation output.");
         }
     }
+    private async void ImportHymns(object sender,RoutedEventArgs e)
+    {
+        if(workspace.IsBusy||workspace.HasRecovery){workspace.ReportError("Wait for the current operation and recover or dismiss pending drafts first.");return;}
+        try
+        {
+            var dialog=new HymnImportWindow(await Task.Run(store.ListSongs)){Owner=this};
+            if(dialog.ShowDialog()==true&&dialog.Result is { } songs)await workspace.ImportHymnsAsync(songs);
+        }
+        catch(Exception error){App.Log("hymn_import_failed",error);workspace.ReportError("Could not import hymns. Live output and editor drafts were preserved.");}
+    }
     private async void OpenScripture(object sender, RoutedEventArgs e)
     {
         if (workspace.IsBusy || workspace.HasRecovery) { workspace.ReportError("Wait for the current operation and recover or dismiss pending drafts first."); return; }

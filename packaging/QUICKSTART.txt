@@ -1,4 +1,4 @@
-KWORSHIP 0.4.1 — WINDOWS x64 DEVELOPMENT BUILD
+KWORSHIP 0.5.0 — WINDOWS x64 DEVELOPMENT BUILD
 
 1. Extract the entire ZIP into a local folder on a Windows 11 x64 computer.
 2. Run Kworship.exe. The .NET runtime is included; no SDK is required.
@@ -63,3 +63,12 @@ XML. Imported translations are in %LOCALAPPDATA%\Kworship\Bibles and are NOT
 included in database-only backups. Saved passages ARE included in those backups.
 ASV digital source: github.com/scrollmapper/bible_databases, sources/en/ASV;
 source revision d0ded4193d330a5412c14124a953bc112e67002f, public domain.
+
+BULK HYMN IMPORT
+Click Import hymns, then Choose hymn file. UTF-8 CSV and JSON are supported.
+Review lyrics, credits and duplicate counts, then Import collection.
+All new hymns save together; exact duplicates are skipped. Live output and
+editor drafts stay unchanged. Select an imported hymn, preview it, and add it
+to your service. See HYMN-IMPORT.md and hymn-example.json (original demo words).
+Hymnal/number fields are optional searchable references; no full hymnbook or
+SDA hymnal collection is bundled. Use lyrics and notices you may project.

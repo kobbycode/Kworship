@@ -138,6 +138,13 @@ public sealed class WorkspaceViewModel : INotifyPropertyChanged
         await RefreshLibrary(); Changed(nameof(IsSongDirty));
         Status = "Song saved locally. Preview and live snapshots were preserved.";
     });
+    public Task ImportHymnsAsync(IReadOnlyList<Song> songs) => Work(async () =>
+    {
+        if(!AllowNewEdits())return;
+        var result=await Task.Run(()=>store.ImportSongs(songs));
+        await RefreshLibrary();Query="";
+        Status=$"Imported {result.Added} hymns; skipped {result.Skipped} exact duplicates. Different versions are kept separately. Live output and editor drafts were preserved.";
+    });
     public Task SaveScriptureAsync(Song passage) => Work(async () =>
     {
         if (!AllowNewEdits()) return;

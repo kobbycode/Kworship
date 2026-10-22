@@ -8,6 +8,7 @@ public sealed record ServiceSchedule(Guid Id, int Revision, string Title, IReadO
 public interface ILibraryStore
 {
     Song SaveSong(Song song, int expectedRevision);
+    HymnImportResult ImportSongs(IReadOnlyList<Song> songs);
     Song? GetSong(Guid id);
     IReadOnlyList<Song> ListSongs();
     ServiceSchedule SaveSchedule(ServiceSchedule schedule, int expectedRevision);
